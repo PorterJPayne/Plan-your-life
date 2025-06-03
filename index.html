@@ -851,6 +851,9 @@
         </svg>
         Sign in with Google
       </button>
+      <form id="skip-login-form" style="margin-top: 1em;">
+        <button type="submit" class="google-btn" style="background:#34a853;">Skip Login (Test Account)</button>
+      </form>
     </div>
   </div>
 
@@ -1486,6 +1489,27 @@
           };
         }
       });
+      
+      const skipLoginForm = document.getElementById('skip-login-form');
+      if (skipLoginForm) {
+        skipLoginForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          // Simulate a test user session by storing a flag in localStorage
+          localStorage.setItem('testUser', 'true');
+          // Hide the login overlay and initialize the app as a test user
+          document.getElementById('login-overlay').style.display = 'none';
+          // Optionally, set up a fake user object for the session
+          currentUser = { displayName: 'Test User', email: 'test@example.com', uid: 'testUser' };
+          // Initialize the app as if signed in
+          initializeHabitApp();
+          initNavigation();
+          initQuickAdd();
+          initVision();
+          initCalendarNavigation();
+          initRoutineManager();
+          document.getElementById('user-name').textContent = 'Test User';
+        });
+      }
     }
 
     // Load user data from Firestore
@@ -2713,13 +2737,11 @@
         // Calculate completion rate over last 30 days
         let completed = 0;
         let total = 0;
-        
         for (let i = 0; i < 30; i++) {
           const date = new Date();
           date.setDate(date.getDate() - i);
           const dateStr = date.toISOString().split('T')[0];
           const completionKey = `${habit.id}-${dateStr}`;
-          
           total++;
           if (appData.completions[completionKey]) completed++;
         }

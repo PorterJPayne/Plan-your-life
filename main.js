@@ -100,6 +100,9 @@ signOutBtn?.addEventListener('click', async () => {
   try {
     await signOut(auth);
     console.log('User signed out');
+    
+    // Remove test user session on sign out
+    localStorage.removeItem('testUser');
   } catch (error) {
     console.error('Sign out error:', error);
     alert('Failed to sign out: ' + error.message);
@@ -127,20 +130,29 @@ function updateCurrentDate() {
 }
 updateCurrentDate();
 
-// Authentication state listener
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    currentUser = user;
-    loginOverlay.classList.add('hidden');
-    userNameSpan.textContent = user.displayName || 'User';
-    await loadUserData();
-  } else {
-    currentUser = null;
-    loginOverlay.classList.remove('hidden');
-    userNameSpan.textContent = 'Loading...';
-    if (visionSpan) visionSpan.textContent = 'Loading...';
-  }
-});
+// Check for test user session and bypass Firebase auth if present
+if (localStorage.getItem('testUser') === 'true') {
+  currentUser = { uid: 'test_user', displayName: 'Test User' };
+  loginOverlay?.classList.add('hidden');
+  userNameSpan.textContent = 'Test User';
+  // Optionally, load test data or skip loading user-specific data from Firestore
+  // You may want to mock or skip Firestore calls for the test user
+} else {
+  // Authentication state listener
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      loginOverlay.classList.add('hidden');
+      userNameSpan.textContent = user.displayName || 'User';
+      await loadUserData();
+    } else {
+      currentUser = null;
+      loginOverlay.classList.remove('hidden');
+      userNameSpan.textContent = 'Loading...';
+      if (visionSpan) visionSpan.textContent = 'Loading...';
+    }
+  });
+}
 
 // Navigation handling
 document.querySelectorAll('.sidebar-nav-item').forEach(item => {
@@ -823,4 +835,108 @@ async function updateRoutineInDatabase(routine) {
   try {
     await updateDoc(doc(db, 'users', currentUser.uid, 'routines', routine.id), {
       habits: routine.habits,
-      completed: routine.completed ||
+      completed: routine.completed || false
+    });
+  } catch (error) {
+    console.error('Error updating routine:', error);
+  }
+}
+
+// Load original dashboard content
+function loadOriginalDashboard() {
+  // This function should load the original dashboard content
+  // For example, it can load summary stats, recent habits, tasks, etc.
+  // Implement the content loading as per your original dashboard design
+  loadSummaryStats();
+  loadRecentHabits();
+  loadUpcomingTasks();
+}
+
+// Load summary stats
+function loadSummaryStats() {
+  // Implement the summary stats loading
+  // This can include total habits, completed habits, streaks, etc.
+  const totalHabits = allEntries.filter(e => e.type === 'habit').length;
+  const completedHabits = allEntries.filter(e => e.type === 'habit' && e.completed).length;
+  const totalTasks = allEntries.filter(e => e.type === 'task').length;
+  const completedTasks = allEntries.filter(e => e.type === 'task' && e.completed).length;
+  
+  const streaks = calculateStreaks();
+  
+  // Update the stats elements
+  if (habitsCompletedSpan) habitsCompletedSpan.textContent = completedHabits;
+  if (tasksCompletedSpan) tasksCompletedSpan.textContent = completedTasks;
+  if (streakCountSpan) streakCountSpan.textContent = streaks.habitStreak;
+  if (completionRateSpan) completionRateSpan.textContent = `${streaks.completionRate}%`;
+}
+
+// Calculate streaks and completion rate
+function calculateStreaks() {
+  // Implement the streak calculation logic
+  // This is a placeholder implementation
+  let habitStreak = 0;
+  let taskStreak = 0;
+  let totalDays = 0;
+  let completedDays = 0;
+  
+  allEntries.forEach(entry => {
+    if (entry.type === 'habit' || entry.type === 'task') {
+      totalDays++;
+      if (entry.completed) {
+        completedDays++;
+        if (entry.type === 'habit') habitStreak++;
+        if (entry.type === 'task') taskStreak++;
+      }
+    }
+  });
+  
+  const completionRate = totalDays > 0 ? ((completedDays / totalDays) * 100).toFixed(0) : 0;
+  
+  return { habitStreak, taskStreak, completionRate };
+}
+
+// Load recent habits
+function loadRecentHabits() {
+  // Implement the recent habits loading
+  // This can show the habits added or updated recently
+  const container = document.getElementById('recent-habits');
+  if (!container) return;
+  
+  const recentHabits = allEntries.filter(e => e.type === 'habit').slice(-5);
+  
+  container.innerHTML = recentHabits.map(habit => `
+    <div class="recent-habit">
+      <div class="recent-habit-name">${habit.name}</div>
+      <div class="recent-habit-status ${habit.completed ? 'completed' : ''}">
+        ${habit.completed ? '✓ Completed' : '⏳ Incomplete'}
+      </div>
+    </div>
+  `).join('');
+}
+
+// Load upcoming tasks
+function loadUpcomingTasks() {
+  // Implement the upcoming tasks loading
+  // This can show the tasks due soon or not yet completed
+  const container = document.getElementById('upcoming-tasks');
+  if (!container) return;
+  
+  const upcomingTasks = allEntries.filter(e => e.type === 'task' && !e.completed).slice(0, 5);
+  
+  container.innerHTML = upcomingTasks.map(task => `
+    <div class="upcoming-task">
+      <div class="upcoming-task-name">${task.name}</div>
+      <div class="upcoming-task-due-date">${new Date(task.dueDate).toLocaleDateString()}</div>
+    </div>
+  `).join('');
+}
+
+// Initialize the app
+function initializeApp() {
+  updateCurrentDate();
+  loadUserData();
+  loadOriginalDashboard();
+}
+
+// Call the initialize function on script load
+initializeApp();

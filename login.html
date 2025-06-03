@@ -23,7 +23,7 @@
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
     button {
-      background-color: #4285F4;
+      background-color: #cd42f4;
       color: white;
       border: none;
       padding: 1em 2em;
@@ -32,7 +32,15 @@
       cursor: pointer;
     }
     button:hover {
-      background-color: #357ae8;
+      background-color: #e8358e;
+    }
+    #skip-login-form {
+      margin-top: 1em;
+    }
+    #skip-login-form button {
+      background-color: #34a853;
+      width: 100%;
+      margin-top: 0.5em;
     }
   </style>
 </head>
@@ -41,6 +49,10 @@
     <h1>Welcome to Habit Tracker</h1>
     <p>Sign in to start tracking your habits</p>
     <button id="google-sign-in">Sign in with Google</button>
+
+    <form method="post" id="skip-login-form" style="margin-top: 1em;">
+      <button type="submit">Skip Login (Test Account)</button>
+    </form>
   </div>
 
   <script type="module">
@@ -68,6 +80,14 @@
 
     document.getElementById("google-sign-in").addEventListener("click", () => {
       signInWithRedirect(auth, provider);
+    });
+
+    // Skip Login (Test Account) button logic
+    document.getElementById("skip-login-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      // Simulate a test user session by storing a flag in localStorage
+      localStorage.setItem('testUser', 'true');
+      window.location.href = "index.html";
     });
 
     getRedirectResult(auth)
